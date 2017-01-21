@@ -59,3 +59,21 @@ func TestOpen(t *testing.T) {
 		t.Error("Open should have returned an error")
 	}
 }
+
+func TestRegisterPlugin(t *testing.T) {
+	pluginCalled := false
+
+	adapter := mock.NewAdapter()
+	robot, _ := marvin.NewRobot("marvin", adapter)
+	robot.RegisterPlugin(func(r *marvin.Robot) {
+		pluginCalled = true
+
+		if r != robot {
+			t.Error("Did not get passed the correct robot")
+		}
+	})
+
+	if !pluginCalled {
+		t.Error("Plugin did not get called")
+	}
+}

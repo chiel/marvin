@@ -34,3 +34,8 @@ func (r *Robot) Close() error {
 func (r *Robot) Open() error {
 	return r.adapter.Open()
 }
+
+// RegisterPlugin registers the given plugin.
+func (r *Robot) RegisterPlugin(plugin func(*Robot)) {
+	plugin(r)
+}
