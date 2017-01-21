@@ -91,3 +91,17 @@ func TestRegisterPlugin(t *testing.T) {
 		t.Error("Plugin did not get called")
 	}
 }
+
+func TestRespond(t *testing.T) {
+	cb := func(*marvin.Request) {}
+
+	adapter := mock.NewAdapter()
+	robot, _ := marvin.NewRobot("marvin", adapter)
+	if err := robot.Respond("test", cb); err != nil {
+		t.Error("Respond should not have returned an error")
+	}
+
+	if err := robot.Respond("^te[st", cb); err == nil {
+		t.Error("Respond should have returned an error")
+	}
+}

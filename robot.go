@@ -26,6 +26,18 @@ func NewRobot(name string, adapter Adapter) (*Robot, error) {
 	return robot, nil
 }
 
+// createListener adds a new listener.
+func (r *Robot) createListener(pattern string, callback ListenerCallback, direct bool) error {
+	regex, err := regexp.Compile(pattern)
+	if err != nil {
+		return err
+	}
+
+	listener := &Listener{callback: callback, direct: direct, regex: regex}
+	r.listeners = append(r.listeners, listener)
+	return nil
+}
+
 // Close disconnects the robot's adapter.
 func (r *Robot) Close() error {
 	return r.adapter.Close()
@@ -33,14 +45,7 @@ func (r *Robot) Close() error {
 
 // Hear creates a listener for messages that are not necessarily directed at the robot.
 func (r *Robot) Hear(pattern string, callback ListenerCallback) error {
-	regex, err := regexp.Compile(pattern)
-	if err != nil {
-		return err
-	}
-
-	listener := &Listener{callback: callback, direct: false, regex: regex}
-	r.listeners = append(r.listeners, listener)
-	return nil
+	return r.createListener(pattern, callback, false)
 }
 
 // Open connects the robot through the adapter.
@@ -51,4 +56,9 @@ func (r *Robot) Open() error {
 // RegisterPlugin registers the given plugin.
 func (r *Robot) RegisterPlugin(plugin func(*Robot)) {
 	plugin(r)
+}
+
+// Respond creates a listener for messages directed at the robot.
+func (r *Robot) Respond(pattern string, callback ListenerCallback) error {
+	return r.createListener(pattern, callback, true)
 }
