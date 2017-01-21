@@ -41,6 +41,20 @@ func TestClose(t *testing.T) {
 	}
 }
 
+func TestHear(t *testing.T) {
+	cb := func(*marvin.Request) {}
+
+	adapter := mock.NewAdapter()
+	robot, _ := marvin.NewRobot("marvin", adapter)
+	if err := robot.Hear("test", cb); err != nil {
+		t.Error("Hear should not have returned an error")
+	}
+
+	if err := robot.Hear("^te[st", cb); err == nil {
+		t.Error("Hear should have returned an error")
+	}
+}
+
 func TestOpen(t *testing.T) {
 	adapter := mock.NewAdapter()
 	robot, _ := marvin.NewRobot("marvin", adapter)

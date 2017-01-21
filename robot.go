@@ -5,6 +5,7 @@ import "regexp"
 // Robot describes a robot.
 type Robot struct {
 	adapter   Adapter
+	listeners []*Listener
 	name      string
 	nameRegex *regexp.Regexp
 }
@@ -28,6 +29,18 @@ func NewRobot(name string, adapter Adapter) (*Robot, error) {
 // Close disconnects the robot's adapter.
 func (r *Robot) Close() error {
 	return r.adapter.Close()
+}
+
+// Hear creates a listener for messages that are not necessarily directed at the robot.
+func (r *Robot) Hear(pattern string, callback ListenerCallback) error {
+	regex, err := regexp.Compile(pattern)
+	if err != nil {
+		return err
+	}
+
+	listener := &Listener{callback: callback, direct: false, regex: regex}
+	r.listeners = append(r.listeners, listener)
+	return nil
 }
 
 // Open connects the robot through the adapter.
