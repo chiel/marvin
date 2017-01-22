@@ -5,7 +5,7 @@ import "regexp"
 // Adapter describes the interface an adapter should implement.
 type Adapter interface {
 	Close() error
-	Open() error
+	Open(chan<- *Message) error
 	Reply(*Message, string) error
 	Send(*Message, string) error
 }

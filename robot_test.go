@@ -22,6 +22,49 @@ func TestNewRobot(t *testing.T) {
 	}
 }
 
+func Test_receiveMessages(t *testing.T) {
+	tests := []struct {
+		Called  bool
+		Direct  bool
+		Pattern string
+		Text    string
+	}{
+		{true, true, "^test", "@marvin test"},
+		{false, true, "^test", "test"},
+		{true, false, "test", "@marvin test"},
+		{false, false, "test", "thing"},
+	}
+
+	for _, test := range tests {
+		adapter := mock.NewAdapter()
+		robot, _ := marvin.NewRobot("marvin", adapter)
+		robot.Open()
+
+		m := &marvin.Message{
+			Channel: &marvin.Channel{ID: "1234", Name: "general"},
+			User:    &marvin.User{ID: "4321", Name: "someperson"},
+			Text:    test.Text,
+		}
+
+		called := false
+		callback := func(r *marvin.Request) {
+			called = true
+		}
+
+		if test.Direct {
+			robot.Respond(test.Pattern, callback)
+		} else {
+			robot.Hear(test.Pattern, callback)
+		}
+
+		adapter.PushMessage(m)
+
+		if called != test.Called {
+			t.Error("Should not have been called")
+		}
+	}
+}
+
 func TestClose(t *testing.T) {
 	adapter := mock.NewAdapter()
 	robot, _ := marvin.NewRobot("marvin", adapter)

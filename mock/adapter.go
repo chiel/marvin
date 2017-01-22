@@ -4,7 +4,8 @@ import "github.com/chielkunkels/marvin"
 
 // Adapter represents a mock adapter
 type Adapter struct {
-	err error
+	err      error
+	messages chan<- *marvin.Message
 
 	CloseCalled bool
 	OpenCalled  bool
@@ -24,9 +25,15 @@ func (a *Adapter) Close() error {
 }
 
 // Open mocks an adapter opening the connection
-func (a *Adapter) Open() error {
+func (a *Adapter) Open(messages chan<- *marvin.Message) error {
+	a.messages = messages
 	a.OpenCalled = true
 	return a.err
+}
+
+// PushMessage pushes a new message into the messages channel
+func (a *Adapter) PushMessage(m *marvin.Message) {
+	a.messages <- m
 }
 
 // Reply sends a reply directed at the user sending the request

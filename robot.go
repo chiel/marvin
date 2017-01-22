@@ -38,6 +38,30 @@ func (r *Robot) createListener(pattern string, callback ListenerCallback, direct
 	return nil
 }
 
+// receiveMessages listens for messages on the given channel.
+func (r *Robot) receiveMessages(messages <-chan *Message) {
+	for {
+		m := <-messages
+		for _, listener := range r.listeners {
+			if listener.direct && !r.nameRegex.MatchString(m.Text) {
+				continue
+			}
+
+			text := m.Text
+			if listener.direct {
+				text = r.nameRegex.ReplaceAllString(m.Text, "")
+			}
+
+			matches := listener.regex.FindStringSubmatch(text)
+			if matches == nil {
+				continue
+			}
+
+			listener.callback(NewRequest(r, m, matches[1:]))
+		}
+	}
+}
+
 // Close disconnects the robot's adapter.
 func (r *Robot) Close() error {
 	return r.adapter.Close()
@@ -50,7 +74,14 @@ func (r *Robot) Hear(pattern string, callback ListenerCallback) error {
 
 // Open connects the robot through the adapter.
 func (r *Robot) Open() error {
-	return r.adapter.Open()
+	messages := make(chan *Message)
+	go r.receiveMessages(messages)
+
+	if err := r.adapter.Open(messages); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RegisterPlugin registers the given plugin.
