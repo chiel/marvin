@@ -15,6 +15,40 @@ import (
 
 var testToken = "xoxb-1234567890-aAbBcCdDeEfFgGhHiIjJkKlL"
 
+func TestClose(t *testing.T) {
+	var URL *url.URL
+
+	h := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/rtm.start" {
+			URL.Scheme = "ws"
+			w.Write([]byte("{\"ok\":true,\"url\":\"" + URL.String() + "/rtm\"}"))
+		}
+
+		if r.URL.Path == "/rtm" {
+			upgrader := websocket.Upgrader{
+				ReadBufferSize:  1024,
+				WriteBufferSize: 1024,
+			}
+
+			upgrader.Upgrade(w, r, nil)
+		}
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	URL, _ = url.Parse(ts.URL)
+
+	adapter := slack.NewAdapter(testToken)
+	adapter.RtmStartEndpoint = URL.String() + "/rtm.start?token=%s"
+
+	messages := make(chan *marvin.Message)
+	adapter.Open(messages)
+
+	err := adapter.Close()
+	if err != nil {
+		t.Error("Close should not have thrown an error")
+	}
+}
+
 func TestOpen(t *testing.T) {
 	tests := []struct {
 		closeEarly  bool

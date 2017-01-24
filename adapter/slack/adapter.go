@@ -28,6 +28,16 @@ func NewAdapter(token string) *Adapter {
 	}
 }
 
+// Close disconnects the adapter from slack's RTM api.
+func (a *Adapter) Close() error {
+	if a.ws != nil {
+		a.ws.Close()
+	}
+
+	a.ws = nil
+	return nil
+}
+
 // Open authenticates and connects to slack's RTM api.
 func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 	url := fmt.Sprintf(a.RtmStartEndpoint, a.token)
