@@ -59,6 +59,7 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 
 	var res rtmStart
 	if err := json.Unmarshal(body, &res); err != nil {
