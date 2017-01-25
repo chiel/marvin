@@ -40,8 +40,7 @@ func (r *Robot) createListener(pattern string, callback ListenerCallback, direct
 
 // receiveMessages listens for messages on the given channel.
 func (r *Robot) receiveMessages(messages <-chan *Message) {
-	for {
-		m := <-messages
+	for m := range messages {
 		for _, listener := range r.listeners {
 			if listener.direct && !r.nameRegex.MatchString(m.Text) {
 				continue
