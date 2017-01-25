@@ -15,6 +15,7 @@ import (
 
 // Adapter describes a slack adapter.
 type Adapter struct {
+	counter          int64
 	RtmStartEndpoint string
 	token            string
 	ws               *websocket.Conn
@@ -26,6 +27,13 @@ func NewAdapter(token string) *Adapter {
 		RtmStartEndpoint: "https://slack.com/api/rtm.start?token=%s",
 		token:            token,
 	}
+}
+
+// sendMessage sends a message to slack's rtm api.
+func (a *Adapter) sendMessage(m *message) error {
+	a.counter++
+	m.ID = a.counter
+	return a.ws.WriteJSON(m)
 }
 
 // Close disconnects the adapter from slack's RTM api.
@@ -69,4 +77,15 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 	a.ws = ws
 
 	return nil
+}
+
+// Send sends some text back to the channel the message originated from.
+func (a *Adapter) Send(m *marvin.Message, text string) error {
+	rm := &message{
+		Channel: m.Channel.ID,
+		Text:    text,
+		Type:    "message",
+	}
+
+	return a.sendMessage(rm)
 }
