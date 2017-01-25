@@ -55,10 +55,7 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 		return ErrHTTPStart
 	}
 
-	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1024))
-	if err != nil {
-		return err
-	}
+	body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1024))
 	resp.Body.Close()
 
 	var res rtmStart
