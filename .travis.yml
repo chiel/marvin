@@ -8,8 +8,15 @@ go:
 
 install:
   - export GO15VENDOREXPERIMENT=1
-  - go get -v github.com/Masterminds/glide
+  - go get github.com/Masterminds/glide
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/go-playground/overalls
+  - go get github.com/mattn/goveralls
   - glide install
 
 script:
-  - go test ./... -cover
+  - go test $($GOPATH/bin/glide novendor) -cover
+  - $GOPATH/bin/overalls -project=github.com/chielkunkels/marvin -covermode=count -ignore=.git,vendor
+
+after_success:
+  - $GOPATH/bin/goveralls -coverprofile=overalls.coverprofile -service=travis-ci
