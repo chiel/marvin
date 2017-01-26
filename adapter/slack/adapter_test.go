@@ -32,7 +32,8 @@ func TestClose(t *testing.T) {
 				WriteBufferSize: 1024,
 			}
 
-			upgrader.Upgrade(w, r, nil)
+			conn, _ := upgrader.Upgrade(w, r, nil)
+			defer conn.Close()
 		}
 	}
 
@@ -124,11 +125,7 @@ func TestOpen(t *testing.T) {
 						WriteBufferSize: 1024,
 					}
 
-					conn, err := upgrader.Upgrade(w, r, nil)
-					if err != nil {
-						fmt.Println(err)
-						return
-					}
+					conn, _ := upgrader.Upgrade(w, r, nil)
 					defer conn.Close()
 				}
 			}
@@ -191,6 +188,8 @@ func TestReply(t *testing.T) {
 			}
 
 			conn, _ := upgrader.Upgrade(w, r, nil)
+			defer conn.Close()
+
 			_, p, _ := conn.ReadMessage()
 			var rm struct {
 				ID      int64  `json:"id"`
@@ -241,6 +240,8 @@ func TestSend(t *testing.T) {
 			}
 
 			conn, _ := upgrader.Upgrade(w, r, nil)
+			defer conn.Close()
+
 			_, p, _ := conn.ReadMessage()
 			var rm struct {
 				ID      int64  `json:"id"`
