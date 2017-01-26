@@ -30,10 +30,17 @@ func NewAdapter(token string) *Adapter {
 }
 
 // sendMessage sends a message to slack's rtm api.
-func (a *Adapter) sendMessage(m *message) error {
+func (a *Adapter) sendMessage(m *marvin.Message, text string) error {
 	a.counter++
-	m.ID = a.counter
-	return a.ws.WriteJSON(m)
+
+	rm := &message{
+		ID:      a.counter,
+		Channel: m.Channel.ID,
+		Text:    text,
+		Type:    "message",
+	}
+
+	return a.ws.WriteJSON(rm)
 }
 
 // Close disconnects the adapter from slack's RTM api.
@@ -77,13 +84,16 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 	return nil
 }
 
-// Send sends some text back to the channel the message originated from.
-func (a *Adapter) Send(m *marvin.Message, text string) error {
-	rm := &message{
-		Channel: m.Channel.ID,
-		Text:    text,
-		Type:    "message",
+// Reply sends a reply to the user sending the request.
+func (a *Adapter) Reply(m *marvin.Message, text string) error {
+	if !m.Channel.IsDM {
+		text = "@" + m.User.Name + " " + text
 	}
 
-	return a.sendMessage(rm)
+	return a.sendMessage(m, text)
+}
+
+// Send sends some text back to the channel the message originated from.
+func (a *Adapter) Send(m *marvin.Message, text string) error {
+	return a.sendMessage(m, text)
 }

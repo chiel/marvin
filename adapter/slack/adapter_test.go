@@ -169,6 +169,57 @@ func TestOpen(t *testing.T) {
 	}
 }
 
+func TestReply(t *testing.T) {
+	fmt.Println("test send")
+	var URL *url.URL
+
+	m := &marvin.Message{
+		Channel: &marvin.Channel{ID: "1234", Name: "general"},
+		User:    &marvin.User{ID: "4321", Name: "someperson"},
+		Text:    "test text",
+	}
+
+	h := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/rtm.start" {
+			URL.Scheme = "ws"
+			w.Write([]byte("{\"ok\":true,\"url\":\"" + URL.String() + "/rtm\"}"))
+		}
+
+		if r.URL.Path == "/rtm" {
+			upgrader := websocket.Upgrader{
+				ReadBufferSize:  1024,
+				WriteBufferSize: 1024,
+			}
+
+			conn, _ := upgrader.Upgrade(w, r, nil)
+			_, p, _ := conn.ReadMessage()
+			var rm struct {
+				ID      int64  `json:"id"`
+				Channel string `json:"channel"`
+				Text    string `json:"text"`
+				Type    string `json:"type"`
+			}
+			json.Unmarshal(p, &rm)
+			if rm.ID != 1 || rm.Channel != m.Channel.ID || rm.Text != "@someperson hello" || rm.Type != "message" {
+				t.Errorf("received message was wrong")
+			}
+		}
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(h))
+	URL, _ = url.Parse(ts.URL)
+
+	adapter := slack.NewAdapter(testToken)
+	adapter.RtmStartEndpoint = URL.String() + "/rtm.start?token=%s"
+
+	messages := make(chan *marvin.Message)
+	adapter.Open(messages)
+
+	adapter.Reply(m, "hello")
+
+	time.Sleep(time.Millisecond)
+}
+
 func TestSend(t *testing.T) {
 	fmt.Println("test send")
 	var URL *url.URL
