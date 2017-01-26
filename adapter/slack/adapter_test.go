@@ -170,7 +170,6 @@ func TestOpen(t *testing.T) {
 }
 
 func TestReply(t *testing.T) {
-	fmt.Println("test send")
 	var URL *url.URL
 
 	m := &marvin.Message{
@@ -221,7 +220,6 @@ func TestReply(t *testing.T) {
 }
 
 func TestSend(t *testing.T) {
-	fmt.Println("test send")
 	var URL *url.URL
 
 	m := &marvin.Message{
