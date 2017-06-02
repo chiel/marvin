@@ -88,6 +88,55 @@ func (a *Adapter) addFormatting(text string) string {
 	return text
 }
 
+// removeFormatting removes all slack-specific formatting.
+func (a *Adapter) removeFormatting(text string) string {
+	text = removeFormattingRegexp.ReplaceAllStringFunc(text, func(m string) string {
+		match := removeFormattingRegexp.FindStringSubmatch(m)
+		t := match[1]
+		link := match[2]
+		label := match[3]
+
+		if t == "@" {
+			if label != "" {
+				return label
+			}
+
+			if user, ok := a.usersByID[link]; ok {
+				return "@" + user.Name
+			}
+		} else if t == "#" {
+			if label != "" {
+				return label
+			}
+
+			if channel, ok := a.channelsByID[link]; ok {
+				return "#" + channel.Name
+			}
+		} else if t == "!" {
+			if link == "channel" || link == "everyone" || link == "group" || link == "here" {
+				return "@" + link
+			}
+		}
+
+		m = strings.TrimPrefix(m, "mailto:")
+		if label != "" {
+			if !strings.Contains(link, label) {
+				return fmt.Sprintf("%s (%s)", label, link)
+			}
+
+			return label
+		}
+
+		return link
+	})
+
+	text = strings.Replace(text, "&lt;", "<", -1)
+	text = strings.Replace(text, "&gt;", ">", -1)
+	text = strings.Replace(text, "&amp;", "&", -1)
+
+	return text
+}
+
 // cacheChannels takes all the slack channels from
 // the rtm.start response and caches them in memory.
 func (a *Adapter) cacheChannels(channels []marvin.Channel) {
@@ -199,7 +248,7 @@ func (a *Adapter) receiveMessages(messages chan<- *marvin.Message) {
 		messages <- &marvin.Message{
 			Channel: channel,
 			User:    a.usersByID[m.User],
-			Text:    m.Text,
+			Text:    a.removeFormatting(m.Text),
 		}
 	}
 }
