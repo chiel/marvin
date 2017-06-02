@@ -8,6 +8,7 @@ type Robot struct {
 	listeners []*Listener
 	name      string
 	nameRegex *regexp.Regexp
+	plugins   []func(*Robot)
 }
 
 // NewRobot creates a new robot and returns a pointer to it.
@@ -21,6 +22,7 @@ func NewRobot(name string, adapter Adapter) (*Robot, error) {
 		adapter:   adapter,
 		name:      name,
 		nameRegex: nameRegex,
+		plugins:   []func(*Robot){},
 	}
 
 	return robot, nil
@@ -80,12 +82,16 @@ func (r *Robot) Open() error {
 		return err
 	}
 
+	for _, plugin := range r.plugins {
+		plugin(r)
+	}
+
 	return nil
 }
 
 // RegisterPlugin registers the given plugin.
 func (r *Robot) RegisterPlugin(plugin func(*Robot)) {
-	plugin(r)
+	r.plugins = append(r.plugins, plugin)
 }
 
 // Respond creates a listener for messages directed at the robot.
