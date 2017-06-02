@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -62,7 +61,7 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 		return ErrHTTPStart
 	}
 
-	body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1024))
+	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	var res rtmStart
