@@ -14,17 +14,26 @@ import (
 
 // Adapter describes a slack adapter.
 type Adapter struct {
+	channelsByID     map[string]*marvin.Channel
+	channelsByName   map[string]*marvin.Channel
 	counter          int64
 	RtmStartEndpoint string
+	self             marvin.User
 	token            string
+	usersByID        map[string]*marvin.User
+	usersByName      map[string]*marvin.User
 	ws               *websocket.Conn
 }
 
 // NewAdapter creates a new slack adapter.
 func NewAdapter(token string) *Adapter {
 	return &Adapter{
+		channelsByID:     map[string]*marvin.Channel{},
+		channelsByName:   map[string]*marvin.Channel{},
 		RtmStartEndpoint: "https://slack.com/api/rtm.start?token=%s",
 		token:            token,
+		usersByID:        map[string]*marvin.User{},
+		usersByName:      map[string]*marvin.User{},
 	}
 }
 
@@ -40,6 +49,27 @@ func (a *Adapter) sendMessage(m *marvin.Message, text string) error {
 	}
 
 	return a.ws.WriteJSON(rm)
+}
+
+// cacheChannels takes all the slack channels from
+// the rtm.start response and caches them in memory.
+func (a *Adapter) cacheChannels(channels []marvin.Channel) {
+	for _, c := range channels {
+		c := c
+		c.IsDM = strings.HasPrefix(c.ID, "D")
+		a.channelsByID[c.ID] = &c
+		a.channelsByName[c.Name] = &c
+	}
+}
+
+// cacheUsers takes all the users from the rtm.start
+// response and caches them in memory.
+func (a *Adapter) cacheUsers(users []marvin.User) {
+	for _, u := range users {
+		u := u
+		a.usersByID[u.ID] = &u
+		a.usersByName[u.Name] = &u
+	}
 }
 
 // Close disconnects the adapter from slack's RTM api.
@@ -72,6 +102,12 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 	if !res.Ok {
 		return errors.New(res.Err)
 	}
+
+	a.self = res.Self
+	a.cacheChannels(res.Channels)
+	a.cacheChannels(res.Groups)
+	a.cacheChannels(res.IMs)
+	a.cacheUsers(res.Users)
 
 	ws, _, err := websocket.DefaultDialer.Dial(res.URL, nil)
 	if err != nil {
