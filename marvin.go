@@ -8,6 +8,7 @@ type Adapter interface {
 	Open(chan<- *Message) error
 	Reply(*Message, string) error
 	Send(*Message, string) error
+	SendMessage(string, string) error
 }
 
 // Channel describes a channel.

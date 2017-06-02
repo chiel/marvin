@@ -221,6 +221,14 @@ func (a *Adapter) Send(m *marvin.Message, text string) error {
 	return a.sendMessage(m, text)
 }
 
+// SendMessage sends some text to a channel by name.
+func (a *Adapter) SendMessage(channel string, text string) error {
+	message := marvin.Message{
+		Channel: a.channelsByName[channel],
+	}
+	return a.sendMessage(&message, text)
+}
+
 // receiveMessages receives messages from the websocket
 func (a *Adapter) receiveMessages(messages chan<- *marvin.Message) {
 	for {

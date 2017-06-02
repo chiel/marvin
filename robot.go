@@ -98,3 +98,8 @@ func (r *Robot) RegisterPlugin(plugin func(*Robot)) {
 func (r *Robot) Respond(pattern string, callback ListenerCallback) error {
 	return r.createListener(pattern, callback, true)
 }
+
+// Send sends text to a channel.
+func (r *Robot) Send(channel string, text string) error {
+	return r.adapter.SendMessage(channel, text)
+}
