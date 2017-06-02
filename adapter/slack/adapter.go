@@ -153,6 +153,8 @@ func (a *Adapter) Open(messages chan<- *marvin.Message) error {
 
 	a.ws = ws
 
+	go a.receiveMessages(messages)
+
 	return nil
 }
 
@@ -168,4 +170,36 @@ func (a *Adapter) Reply(m *marvin.Message, text string) error {
 // Send sends some text back to the channel the message originated from.
 func (a *Adapter) Send(m *marvin.Message, text string) error {
 	return a.sendMessage(m, text)
+}
+
+// receiveMessages receives messages from the websocket
+func (a *Adapter) receiveMessages(messages chan<- *marvin.Message) {
+	for {
+		_, body, err := a.ws.ReadMessage()
+		if err != nil {
+			fmt.Printf("Error receiving message %+v\n", err)
+			continue
+		}
+
+		m := message{}
+		if err := json.Unmarshal(body, &m); err != nil {
+			fmt.Printf("Error unmarshaling message: %s\n", err)
+			continue
+		}
+
+		if m.Type != "message" || m.User == a.self.ID {
+			continue
+		}
+
+		channel := a.channelsByID[m.Channel]
+		if channel.IsDM {
+			m.Text = a.self.Name + " " + m.Text
+		}
+
+		messages <- &marvin.Message{
+			Channel: channel,
+			User:    a.usersByID[m.User],
+			Text:    m.Text,
+		}
+	}
 }
