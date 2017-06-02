@@ -6,11 +6,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/gorilla/websocket"
 
 	"github.com/chielkunkels/marvin"
 )
+
+var addFormattingRegexp = regexp.MustCompile(`([@#])([^\s:]+)`)
+var removeFormattingRegexp = regexp.MustCompile(`<([@#!])?([^>|]+)(?:\|([^>]+))?>`)
 
 // Adapter describes a slack adapter.
 type Adapter struct {
@@ -44,11 +49,43 @@ func (a *Adapter) sendMessage(m *marvin.Message, text string) error {
 	rm := &message{
 		ID:      a.counter,
 		Channel: m.Channel.ID,
-		Text:    text,
+		Text:    a.addFormatting(text),
 		Type:    "message",
 	}
 
 	return a.ws.WriteJSON(rm)
+}
+
+// addFormatting escapes & encodes the given
+// text for consumption by slack's rtm api.
+func (a *Adapter) addFormatting(text string) string {
+	text = strings.Replace(text, "&", "&amp;", -1)
+	text = strings.Replace(text, "<", "&lt;", -1)
+	text = strings.Replace(text, ">", "&gt;", -1)
+
+	text = addFormattingRegexp.ReplaceAllStringFunc(text, func(m string) string {
+		match := addFormattingRegexp.FindStringSubmatch(m)
+		t := match[1] // type
+		l := match[2] // label
+
+		if t == "@" {
+			if l == "channel" || l == "everyone" || l == "group" || l == "here" {
+				return fmt.Sprintf("<!%s>", l)
+			}
+
+			if user, ok := a.usersByName[l]; ok {
+				return fmt.Sprintf("<@%s>", user.ID)
+			}
+		} else if t == "#" {
+			if channel, ok := a.channelsByName[l]; ok {
+				return fmt.Sprintf("<#%s>", channel.ID)
+			}
+		}
+
+		return m
+	})
+
+	return text
 }
 
 // cacheChannels takes all the slack channels from
