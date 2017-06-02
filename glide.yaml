@@ -2,3 +2,5 @@ package: github.com/chielkunkels/marvin
 import:
 - package: github.com/gorilla/websocket
   version: ^1.1.0
+- package: github.com/pressly/chi
+  version: ^2.1.0

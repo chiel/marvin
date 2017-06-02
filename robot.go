@@ -1,18 +1,25 @@
 package marvin
 
-import "regexp"
+import (
+	"net/http"
+	"regexp"
+
+	"github.com/pressly/chi"
+)
 
 // Robot describes a robot.
 type Robot struct {
 	adapter   Adapter
+	address   string
 	listeners []*Listener
 	name      string
 	nameRegex *regexp.Regexp
 	plugins   []func(*Robot)
+	Router    *chi.Mux
 }
 
 // NewRobot creates a new robot and returns a pointer to it.
-func NewRobot(name string, adapter Adapter) (*Robot, error) {
+func NewRobot(name string, adapter Adapter, address string) (*Robot, error) {
 	nameRegex, err := regexp.Compile(`^@?` + name + `\:?\s+`)
 	if err != nil {
 		return nil, err
@@ -20,9 +27,11 @@ func NewRobot(name string, adapter Adapter) (*Robot, error) {
 
 	robot := &Robot{
 		adapter:   adapter,
+		address:   address,
 		name:      name,
 		nameRegex: nameRegex,
 		plugins:   []func(*Robot){},
+		Router:    chi.NewRouter(),
 	}
 
 	return robot, nil
@@ -77,6 +86,8 @@ func (r *Robot) Hear(pattern string, callback ListenerCallback) error {
 func (r *Robot) Open() error {
 	messages := make(chan *Message)
 	go r.receiveMessages(messages)
+
+	go func() { http.ListenAndServe(r.address, r.Router) }()
 
 	if err := r.adapter.Open(messages); err != nil {
 		return err
